@@ -190,8 +190,12 @@ for (const source of manifest.sources) {
 
     prunePointers(source.id, keep);
 
-    source.lastSyncedSha = sha;
-    source.lastSyncedAt = new Date().toISOString().replace(/\.\d{3}Z$/, 'Z');
+    // Only stamp the time when the upstream commit actually moved. Stamping every run would
+    // make the manifest differ on every sync, so the drift check could never report "no change".
+    if (source.lastSyncedSha !== sha) {
+      source.lastSyncedSha = sha;
+      source.lastSyncedAt = new Date().toISOString().replace(/\.\d{3}Z$/, 'Z');
+    }
     syncedAny = true;
     notice.push(`| \`${source.id}\` | ${source.repo} | ${source.ref} | \`${sha}\` | ${source.license} |`);
   } finally {
