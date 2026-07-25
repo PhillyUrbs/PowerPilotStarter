@@ -1,0 +1,4 @@
+# Generated at Copilot cloud agent session start by copilot-setup-steps.yml, copied from
+# .github/cloud-skills/. Committing it would make local editors list these skills alongside
+# the full upstream plugins, which is exactly what the staging directory avoids.
+/.github/skills/

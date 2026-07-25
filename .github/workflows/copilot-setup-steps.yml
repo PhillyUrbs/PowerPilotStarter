@@ -1,0 +1,99 @@
+name: Copilot Setup Steps
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - .github/workflows/copilot-setup-steps.yml
+  pull_request:
+    paths:
+      - .github/workflows/copilot-setup-steps.yml
+
+jobs:
+  copilot-setup-steps:
+    runs-on: ubuntu-latest
+    # Environment secrets and variables come from here. See .github/copilot-env.example.
+    environment: copilot
+    permissions:
+      contents: read
+      # Required for federated (OIDC) sign-in to Azure.
+      id-token: write
+    env:
+      POWER_PLATFORM_SKILLS_TELEMETRY_POWER_PAGES_OPTOUT: ${{ vars.POWER_PLATFORM_SKILLS_TELEMETRY_POWER_PAGES_OPTOUT }}
+    steps:
+      # Copilot checks out the repo itself only when the setup steps do not. We need the
+      # working tree in place to stage the skills below, so check out explicitly.
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      # The committed copy lives in .github/cloud-skills/ so that local editors, which scan
+      # .github/skills/, do not list it next to the full upstream plugins. Copilot only reads
+      # .github/skills/, so stage the pointers here. .gitignore keeps the result out of commits.
+      # _vendor/ is deliberately not copied - the pointers reference it at its committed path.
+      - name: Stage cloud agent skills
+        run: |
+          set -euo pipefail
+          rm -rf .github/skills
+          mkdir -p .github/skills
+          find .github/cloud-skills -mindepth 1 -maxdepth 1 -type d -not -name _vendor \
+            -exec cp -r {} .github/skills/ \;
+          echo "Staged skills:"
+          find .github/skills -mindepth 1 -maxdepth 1 -type d -printf '  %f\n' | sort
+
+      - name: Install Azure CLI
+        run: curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
+
+      - name: Set up .NET SDK (LTS)
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Install Power Platform CLI
+        run: dotnet tool install --global Microsoft.PowerApps.CLI.Tool
+
+      - name: Add .NET tools to PATH
+        run: echo "$HOME/.dotnet/tools" >> "$GITHUB_PATH"
+
+      # Skipped until AZURE_CLIENT_ID is set on the `copilot` environment, so the baseline
+      # setup still succeeds on a repo that has not configured a service principal yet.
+      - name: Azure login (OIDC)
+        if: vars.AZURE_CLIENT_ID != ''
+        # Third-party action, pinned to a commit SHA.
+        uses: azure/login@a457da9ea143d694b1b9c7c869ebb04ebe844ef5
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+          allow-no-subscriptions: true
+
+      # `pac auth create` has no federated credential flow, so this one needs a client secret.
+      - name: Power Platform auth (service principal)
+        env:
+          PP_APP_ID: ${{ vars.PP_APP_ID }}
+          PP_TENANT_ID: ${{ vars.PP_TENANT_ID }}
+          PP_ENVIRONMENT_URL: ${{ vars.PP_ENVIRONMENT_URL }}
+          PP_CLIENT_SECRET: ${{ secrets.PP_CLIENT_SECRET }}
+        run: |
+          set -euo pipefail
+          if [ -z "${PP_APP_ID:-}" ] || [ -z "${PP_CLIENT_SECRET:-}" ] || [ -z "${PP_ENVIRONMENT_URL:-}" ]; then
+            echo "Power Platform service principal not configured - skipping."
+            echo "Tier B skills will not work. See .github/copilot-env.example."
+            exit 0
+          fi
+          pac auth create \
+            --name copilot \
+            --applicationId "$PP_APP_ID" \
+            --clientSecret "$PP_CLIENT_SECRET" \
+            --tenant "$PP_TENANT_ID" \
+            --environment "$PP_ENVIRONMENT_URL"
+
+      - name: Verify installed tooling
+        run: |
+          az version
+          # `pac --version` prints the banner but then exits 1 with "Not a valid command".
+          # `pac help` is the supported way to get the version, and its banner is the first lines.
+          pac help > /tmp/pac-help.txt
+          sed -n '1,3p' /tmp/pac-help.txt
+          if pac auth list 2>/dev/null | grep -q copilot; then
+            pac auth who
+          fi
