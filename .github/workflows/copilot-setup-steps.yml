@@ -90,7 +90,10 @@ jobs:
       - name: Verify installed tooling
         run: |
           az version
-          pac --version
+          # `pac --version` prints the banner but then exits 1 with "Not a valid command".
+          # `pac help` is the supported way to get the version, and its banner is the first lines.
+          pac help > /tmp/pac-help.txt
+          sed -n '1,3p' /tmp/pac-help.txt
           if pac auth list 2>/dev/null | grep -q copilot; then
             pac auth who
           fi
