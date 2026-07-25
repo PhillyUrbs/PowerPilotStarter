@@ -1,0 +1,54 @@
+# Skeleton of the secrets and variables the Copilot cloud agent needs.
+#
+# Nothing here is read at runtime - this file is a checklist. Set the real values on the
+# repository environment named `copilot`:
+#   Settings -> Environments -> copilot -> Environment secrets / Environment variables
+#
+# Values are never committed. Copy this list, not the file.
+
+# ---------------------------------------------------------------------------
+# Variables (not sensitive - set these as environment *variables*)
+# ---------------------------------------------------------------------------
+
+# Entra ID app registration used for federated (OIDC) sign-in to Azure.
+# Required by: azure/login in copilot-setup-steps.yml, and any tier B skill that shells out to `az`.
+AZURE_CLIENT_ID=
+AZURE_TENANT_ID=
+
+# Optional. Only needed when a skill targets Azure resources rather than Power Platform.
+AZURE_SUBSCRIPTION_ID=
+
+# Power Platform environment the agent should act against, e.g. https://contoso.crm4.dynamics.com
+# Required by: every tier B skill that calls `pac`.
+PP_ENVIRONMENT_URL=
+
+# Application (client) ID of the service principal registered in the Power Platform tenant.
+# This is usually the same app registration as AZURE_CLIENT_ID, but it does not have to be.
+PP_APP_ID=
+
+# Tenant the Power Platform environment belongs to.
+PP_TENANT_ID=
+
+# Suppress upstream plugin telemetry during unattended runs.
+# See: https://github.com/microsoft/power-platform-skills (shared/telemetry/README.md)
+POWER_PLATFORM_SKILLS_TELEMETRY_POWER_PAGES_OPTOUT=1
+
+# ---------------------------------------------------------------------------
+# Secrets (set these as environment *secrets*)
+# ---------------------------------------------------------------------------
+
+# Client secret for PP_APP_ID. `pac auth create` does not support federated credentials,
+# so a secret is required for non-interactive Power Platform auth even when Azure uses OIDC.
+# Rotate on the same cadence as the app registration's secret expiry.
+PP_CLIENT_SECRET=
+
+# ---------------------------------------------------------------------------
+# Not required
+# ---------------------------------------------------------------------------
+#
+# The Microsoft Learn MCP server in .github/copilot-mcp-config.json is unauthenticated,
+# so it needs no COPILOT_MCP_* secret.
+#
+# Only Agents secrets and variables whose names start with COPILOT_MCP_ are exposed to the
+# MCP configuration. Nothing here needs that prefix, because these are consumed by
+# copilot-setup-steps.yml rather than by an MCP server.

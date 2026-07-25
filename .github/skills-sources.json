@@ -1,0 +1,867 @@
+{
+  "$comment": "Vendoring manifest for upstream agent skills. Edit `enabled` to change what gets synced, then run the Sync Skills workflow. Do not hand-edit `lastSyncedSha` / `lastSyncedAt` - the sync script owns them. `skillsRoot` is deliberately NOT .github/skills - see the staging note in README.",
+  "vendorRoot": ".github/cloud-skills/_vendor",
+  "skillsRoot": ".github/cloud-skills",
+  "tiers": {
+    "A": "Cloud-safe. Local file authoring or analysis only. No interactive sign-in, no live Dataverse/Azure call, no local MCP server, no browser.",
+    "B": "Needs non-interactive auth. Works in the cloud agent once the service principal secrets in .github/copilot-env.example are set on the `copilot` environment.",
+    "C": "Not cloud-viable. Requires interactive browser sign-in, device code flow, a plugin-bundled MCP server, the VS Code extension's LSP binary, a simulator, or a live published endpoint."
+  },
+  "sources": [
+    {
+      "id": "copilot-studio",
+      "repo": "microsoft/skills-for-copilot-studio",
+      "ref": "main",
+      "license": "MIT",
+      "pluginPath": "",
+      "skillsPath": "skills",
+      "supportPaths": [
+        "scripts",
+        "templates",
+        "patterns",
+        "reference"
+      ],
+      "$excludeWhy": "Only reachable from the disabled tier B/C skills. Re-enabling one of those means removing the matching exclusion.",
+      "excludePaths": [
+        "scripts/chat-with-agent.bundle.js",
+        "scripts/directline-chat.bundle.js",
+        "scripts/eval-api.bundle.js",
+        "scripts/connector-lookup.bundle.js",
+        "reference/connectors"
+      ],
+      "lastSyncedSha": "f7b65888c47e9b3f18c050b15f20cd8dd500b2c5",
+      "lastSyncedAt": "2026-07-25T02:01:41Z",
+      "skills": [
+        {
+          "name": "new-topic",
+          "tier": "A",
+          "enabled": true,
+          "why": "Writes topic YAML from templates. Schema lookup is a local bundled script."
+        },
+        {
+          "name": "add-node",
+          "tier": "A",
+          "enabled": true,
+          "why": "Edits topic YAML in place."
+        },
+        {
+          "name": "add-generative-answers",
+          "tier": "A",
+          "enabled": true,
+          "why": "Edits topic YAML in place."
+        },
+        {
+          "name": "add-adaptive-card",
+          "tier": "A",
+          "enabled": true,
+          "why": "Generates card JSON into topic YAML."
+        },
+        {
+          "name": "add-global-variable",
+          "tier": "A",
+          "enabled": true,
+          "why": "Edits agent YAML. No external dependency."
+        },
+        {
+          "name": "add-other-agents",
+          "tier": "A",
+          "enabled": true,
+          "why": "Writes child agent YAML from templates."
+        },
+        {
+          "name": "edit-triggers",
+          "tier": "A",
+          "enabled": true,
+          "why": "Edits trigger phrases in topic YAML."
+        },
+        {
+          "name": "edit-agent",
+          "tier": "A",
+          "enabled": true,
+          "why": "Edits agent settings YAML."
+        },
+        {
+          "name": "list-topics",
+          "tier": "A",
+          "enabled": true,
+          "why": "Reads local YAML files."
+        },
+        {
+          "name": "list-kinds",
+          "tier": "A",
+          "enabled": true,
+          "why": "Reads the bundled schema JSON."
+        },
+        {
+          "name": "lookup-schema",
+          "tier": "A",
+          "enabled": true,
+          "why": "Reads the bundled schema JSON."
+        },
+        {
+          "name": "int-reference",
+          "tier": "A",
+          "enabled": true,
+          "why": "Reference tables and templates only."
+        },
+        {
+          "name": "int-patterns",
+          "tier": "A",
+          "enabled": true,
+          "why": "Pattern library markdown only."
+        },
+        {
+          "name": "int-project-context",
+          "tier": "A",
+          "enabled": true,
+          "why": "Shared context loaded by the other Copilot Studio skills."
+        },
+        {
+          "name": "create-eval-set",
+          "tier": "A",
+          "enabled": true,
+          "why": "Generates a test-set CSV from local YAML."
+        },
+        {
+          "name": "analyze-evals",
+          "tier": "A",
+          "enabled": true,
+          "why": "Parses a CSV the user commits. No API access."
+        },
+        {
+          "name": "edit-action",
+          "tier": "B",
+          "enabled": false,
+          "why": "connector-lookup needs an authenticated Dataverse connection."
+        },
+        {
+          "name": "add-knowledge",
+          "tier": "B",
+          "enabled": false,
+          "why": "Validates SharePoint / site URLs against the live tenant."
+        },
+        {
+          "name": "run-eval",
+          "tier": "B",
+          "enabled": false,
+          "why": "Calls the Power Platform Evaluation API. Depends on test-auth."
+        },
+        {
+          "name": "run-tests-kit",
+          "tier": "B",
+          "enabled": false,
+          "why": "Dataverse API against the Copilot Studio Kit, plus a published agent."
+        },
+        {
+          "name": "detect-mode",
+          "tier": "B",
+          "enabled": false,
+          "why": "Queries Dataverse for the agent auth mode."
+        },
+        {
+          "name": "add-action",
+          "tier": "C",
+          "enabled": false,
+          "why": "Requires UI-based connection setup in the Copilot Studio portal."
+        },
+        {
+          "name": "validate",
+          "tier": "C",
+          "enabled": false,
+          "why": "Needs the VS Code extension's LanguageServerHost LSP binary."
+        },
+        {
+          "name": "manage-agent",
+          "tier": "C",
+          "enabled": false,
+          "why": "Interactive browser login for push/pull, device code for chat token."
+        },
+        {
+          "name": "clone-agent",
+          "tier": "C",
+          "enabled": false,
+          "why": "Interactive environment and agent picker plus browser sign-in."
+        },
+        {
+          "name": "test-auth",
+          "tier": "C",
+          "enabled": false,
+          "why": "Device code flow."
+        },
+        {
+          "name": "chat-sdk",
+          "tier": "C",
+          "enabled": false,
+          "why": "Entra ID SSO against a published agent."
+        },
+        {
+          "name": "chat-directline",
+          "tier": "C",
+          "enabled": false,
+          "why": "Needs a DirectLine secret and a published agent."
+        },
+        {
+          "name": "chat-with-agent",
+          "tier": "C",
+          "enabled": false,
+          "why": "Deprecated upstream."
+        },
+        {
+          "name": "directline-chat",
+          "tier": "C",
+          "enabled": false,
+          "why": "Deprecated upstream."
+        },
+        {
+          "name": "create-eval",
+          "tier": "C",
+          "enabled": false,
+          "why": "For developing the upstream plugin itself, not for consumers."
+        }
+      ]
+    },
+    {
+      "id": "power-pages",
+      "repo": "microsoft/power-platform-skills",
+      "ref": "main",
+      "license": "MIT",
+      "pluginPath": "plugins/power-pages",
+      "skillsPath": "skills",
+      "supportPaths": [
+        "scripts",
+        "references",
+        "agents"
+      ],
+      "$excludeWhy": "Upstream plugin's own test suite. Not used at agent runtime.",
+      "excludePaths": [
+        "scripts/tests"
+      ],
+      "lastSyncedSha": "8621084f1fbbce7c311805bd182cef712b679c5f",
+      "lastSyncedAt": "2026-07-25T02:01:42Z",
+      "skills": [
+        {
+          "name": "integrate-backend",
+          "tier": "A",
+          "enabled": true,
+          "why": "Advisory routing. Reads the local project and recommends an approach."
+        },
+        {
+          "name": "integrate-webapi",
+          "tier": "A",
+          "enabled": true,
+          "why": "Writes the API client, types, and service layer into the local project."
+        },
+        {
+          "name": "add-seo",
+          "tier": "A",
+          "enabled": true,
+          "why": "Writes robots.txt, sitemap.xml, and meta tags locally."
+        },
+        {
+          "name": "scan-code",
+          "tier": "A",
+          "enabled": true,
+          "why": "Static analysis and dependency scanning of local source."
+        },
+        {
+          "name": "setup-datamodel",
+          "tier": "B",
+          "enabled": false,
+          "why": "Discovers existing Dataverse tables. Needs pac auth."
+        },
+        {
+          "name": "create-webroles",
+          "tier": "B",
+          "enabled": false,
+          "why": "Reads and writes web role records in Dataverse."
+        },
+        {
+          "name": "audit-permissions",
+          "tier": "B",
+          "enabled": false,
+          "why": "Reads table permissions and Dataverse metadata."
+        },
+        {
+          "name": "add-ai-webapi",
+          "tier": "B",
+          "enabled": false,
+          "why": "Creates AI site settings in Dataverse."
+        },
+        {
+          "name": "add-cloud-flow",
+          "tier": "B",
+          "enabled": false,
+          "why": "Lists Power Automate flows in the environment."
+        },
+        {
+          "name": "add-sample-data",
+          "tier": "B",
+          "enabled": false,
+          "why": "Inserts records into Dataverse."
+        },
+        {
+          "name": "add-server-logic",
+          "tier": "B",
+          "enabled": false,
+          "why": "Deploys server logic files to the Power Pages runtime."
+        },
+        {
+          "name": "configure-env-variables",
+          "tier": "B",
+          "enabled": false,
+          "why": "Creates environment variable definitions in Dataverse."
+        },
+        {
+          "name": "setup-solution",
+          "tier": "B",
+          "enabled": false,
+          "why": "Creates a publisher and solution in Dataverse."
+        },
+        {
+          "name": "export-solution",
+          "tier": "B",
+          "enabled": false,
+          "why": "Exports a solution via pac."
+        },
+        {
+          "name": "import-solution",
+          "tier": "B",
+          "enabled": false,
+          "why": "Imports a solution into a target environment."
+        },
+        {
+          "name": "manage-headers",
+          "tier": "B",
+          "enabled": false,
+          "why": "Reads and writes site settings."
+        },
+        {
+          "name": "manage-firewall",
+          "tier": "B",
+          "enabled": false,
+          "why": "Reads and writes WAF configuration on a live site."
+        },
+        {
+          "name": "diagnose-deployment",
+          "tier": "B",
+          "enabled": false,
+          "why": "Reads Dataverse async operation errors."
+        },
+        {
+          "name": "create-site",
+          "tier": "C",
+          "enabled": false,
+          "why": "Long interactive discovery flow with browser preview and Playwright validation."
+        },
+        {
+          "name": "deploy-site",
+          "tier": "C",
+          "enabled": false,
+          "why": "pac auth create with interactive sign-in, then uploads."
+        },
+        {
+          "name": "activate-site",
+          "tier": "C",
+          "enabled": false,
+          "why": "Provisions a live site. Not something to run unattended."
+        },
+        {
+          "name": "setup-auth",
+          "tier": "C",
+          "enabled": false,
+          "why": "Walks the user through an identity provider console in a browser."
+        },
+        {
+          "name": "test-site",
+          "tier": "C",
+          "enabled": false,
+          "why": "Playwright against a deployed site."
+        },
+        {
+          "name": "scan-site",
+          "tier": "C",
+          "enabled": false,
+          "why": "Scans a live published site."
+        },
+        {
+          "name": "security-review",
+          "tier": "C",
+          "enabled": false,
+          "why": "Orchestrates the live-site checks above."
+        },
+        {
+          "name": "plan-alm",
+          "tier": "C",
+          "enabled": false,
+          "why": "Interactive planning with approval gates."
+        },
+        {
+          "name": "setup-pipeline",
+          "tier": "C",
+          "enabled": false,
+          "why": "Interactive pipeline setup against the tenant."
+        },
+        {
+          "name": "deploy-pipeline",
+          "tier": "C",
+          "enabled": false,
+          "why": "Triggers a real deployment run."
+        },
+        {
+          "name": "ensure-pipelines-host",
+          "tier": "C",
+          "enabled": false,
+          "why": "Provisions a tenant-level environment."
+        },
+        {
+          "name": "force-link-environment",
+          "tier": "C",
+          "enabled": false,
+          "why": "Destructive to an existing pipelines host binding."
+        },
+        {
+          "name": "telemetry",
+          "tier": "C",
+          "enabled": false,
+          "why": "Manages a local opt-out config. Handled by the environment variable instead."
+        },
+        {
+          "name": "report-issue",
+          "tier": "C",
+          "enabled": false,
+          "why": "Files issues against the upstream repo."
+        }
+      ]
+    },
+    {
+      "id": "mcp-apps",
+      "repo": "microsoft/power-platform-skills",
+      "ref": "main",
+      "license": "MIT",
+      "pluginPath": "plugins/mcp-apps",
+      "skillsPath": "skills",
+      "supportPaths": [
+        "references",
+        "samples"
+      ],
+      "lastSyncedSha": "8621084f1fbbce7c311805bd182cef712b679c5f",
+      "lastSyncedAt": "2026-07-25T02:01:43Z",
+      "skills": [
+        {
+          "name": "generate-mcp-app-ui",
+          "tier": "A",
+          "enabled": true,
+          "why": "Generates a self-contained HTML widget from pasted tool output."
+        },
+        {
+          "name": "report-issue",
+          "tier": "C",
+          "enabled": false,
+          "why": "Files issues against the upstream repo."
+        }
+      ]
+    },
+    {
+      "id": "mobile-apps",
+      "repo": "microsoft/power-platform-skills",
+      "ref": "main",
+      "license": "MIT",
+      "pluginPath": "plugins/mobile-apps",
+      "skillsPath": "skills",
+      "supportPaths": [
+        "shared",
+        "agents"
+      ],
+      "lastSyncedSha": "8621084f1fbbce7c311805bd182cef712b679c5f",
+      "lastSyncedAt": "2026-07-25T02:01:44Z",
+      "skills": [
+        {
+          "name": "design-system",
+          "tier": "A",
+          "enabled": true,
+          "why": "Generates brand tokens, a design system doc, and an HTML gallery locally."
+        },
+        {
+          "name": "setup-datamodel",
+          "tier": "B",
+          "enabled": false,
+          "why": "Discovers Dataverse tables."
+        },
+        {
+          "name": "add-dataverse",
+          "tier": "B",
+          "enabled": false,
+          "why": "Needs az login and a live Dataverse connection."
+        },
+        {
+          "name": "add-sharepoint",
+          "tier": "B",
+          "enabled": false,
+          "why": "Needs a live SharePoint connection."
+        },
+        {
+          "name": "add-connector",
+          "tier": "B",
+          "enabled": false,
+          "why": "Enumerates connections in the environment."
+        },
+        {
+          "name": "add-datasource",
+          "tier": "B",
+          "enabled": false,
+          "why": "Routes to the connector skills above."
+        },
+        {
+          "name": "add-sample-data",
+          "tier": "B",
+          "enabled": false,
+          "why": "Inserts records into Dataverse."
+        },
+        {
+          "name": "list-connections",
+          "tier": "B",
+          "enabled": false,
+          "why": "Lists live connections."
+        },
+        {
+          "name": "setup-offline-profile",
+          "tier": "B",
+          "enabled": false,
+          "why": "Creates offline profiles in Dataverse."
+        },
+        {
+          "name": "edit-offline-profile",
+          "tier": "B",
+          "enabled": false,
+          "why": "Mutates an existing offline profile."
+        },
+        {
+          "name": "add-table-to-offline-profile",
+          "tier": "B",
+          "enabled": false,
+          "why": "Mutates an existing offline profile."
+        },
+        {
+          "name": "enable-tables-offline",
+          "tier": "B",
+          "enabled": false,
+          "why": "Changes table metadata in Dataverse."
+        },
+        {
+          "name": "assign-offline-profile",
+          "tier": "B",
+          "enabled": false,
+          "why": "Binds users and teams in Dataverse."
+        },
+        {
+          "name": "preview-offline-scope",
+          "tier": "B",
+          "enabled": false,
+          "why": "Estimates row counts from live data."
+        },
+        {
+          "name": "create-mobile-app",
+          "tier": "C",
+          "enabled": false,
+          "why": "Four interactive approval gates plus browser preview."
+        },
+        {
+          "name": "edit-app",
+          "tier": "C",
+          "enabled": false,
+          "why": "Interactive iteration on an existing app."
+        },
+        {
+          "name": "add-native",
+          "tier": "C",
+          "enabled": false,
+          "why": "Native device capabilities. Needs a device or simulator to verify."
+        },
+        {
+          "name": "debug-app",
+          "tier": "C",
+          "enabled": false,
+          "why": "Polls a running Metro terminal."
+        },
+        {
+          "name": "preview-screens",
+          "tier": "C",
+          "enabled": false,
+          "why": "Opens a browser preview."
+        },
+        {
+          "name": "deploy",
+          "tier": "C",
+          "enabled": false,
+          "why": "Deploys via Power Apps Wrap."
+        },
+        {
+          "name": "open-wrap-url",
+          "tier": "C",
+          "enabled": false,
+          "why": "Opens a browser page."
+        },
+        {
+          "name": "set-app-registration-native",
+          "tier": "C",
+          "enabled": false,
+          "why": "Requires pasting a client ID from a browser page."
+        },
+        {
+          "name": "report-issue",
+          "tier": "C",
+          "enabled": false,
+          "why": "Files issues against the upstream repo."
+        }
+      ]
+    },
+    {
+      "id": "code-apps",
+      "repo": "microsoft/power-platform-skills",
+      "ref": "main",
+      "license": "MIT",
+      "pluginPath": "plugins/code-apps",
+      "skillsPath": "skills",
+      "supportPaths": [
+        "shared",
+        "agents"
+      ],
+      "lastSyncedSha": null,
+      "lastSyncedAt": null,
+      "skills": [
+        {
+          "name": "create-code-app",
+          "tier": "B",
+          "enabled": false,
+          "why": "Scaffolds locally but calls pac to register the app."
+        },
+        {
+          "name": "add-dataverse",
+          "tier": "B",
+          "enabled": false,
+          "why": "Generates models from live Dataverse schema. Needs az login."
+        },
+        {
+          "name": "add-sharepoint",
+          "tier": "B",
+          "enabled": false,
+          "why": "Needs a live SharePoint connection."
+        },
+        {
+          "name": "add-connector",
+          "tier": "B",
+          "enabled": false,
+          "why": "Enumerates connections in the environment."
+        },
+        {
+          "name": "add-datasource",
+          "tier": "B",
+          "enabled": false,
+          "why": "Routes to the connector skills."
+        },
+        {
+          "name": "add-azuredevops",
+          "tier": "B",
+          "enabled": false,
+          "why": "Needs an Azure DevOps connection."
+        },
+        {
+          "name": "add-excel",
+          "tier": "B",
+          "enabled": false,
+          "why": "Needs an Excel Online connection."
+        },
+        {
+          "name": "add-office365",
+          "tier": "B",
+          "enabled": false,
+          "why": "Needs an Office 365 connection."
+        },
+        {
+          "name": "add-onedrive",
+          "tier": "B",
+          "enabled": false,
+          "why": "Needs a OneDrive connection."
+        },
+        {
+          "name": "add-teams",
+          "tier": "B",
+          "enabled": false,
+          "why": "Needs a Teams connection."
+        },
+        {
+          "name": "add-mcscopilot",
+          "tier": "B",
+          "enabled": false,
+          "why": "Needs a Copilot Studio connection."
+        },
+        {
+          "name": "list-connections",
+          "tier": "B",
+          "enabled": false,
+          "why": "Lists live connections."
+        },
+        {
+          "name": "deploy",
+          "tier": "C",
+          "enabled": false,
+          "why": "Builds and pushes the app to Power Platform."
+        },
+        {
+          "name": "report-issue",
+          "tier": "C",
+          "enabled": false,
+          "why": "Files issues against the upstream repo."
+        }
+      ]
+    },
+    {
+      "id": "model-apps",
+      "repo": "microsoft/power-platform-skills",
+      "ref": "main",
+      "license": "MIT",
+      "pluginPath": "plugins/model-apps",
+      "skillsPath": "skills",
+      "supportPaths": [
+        "shared",
+        "agents"
+      ],
+      "lastSyncedSha": null,
+      "lastSyncedAt": null,
+      "skills": [
+        {
+          "name": "genpage",
+          "tier": "C",
+          "enabled": false,
+          "why": "pac auth plus Playwright, and it creates Dataverse entities."
+        },
+        {
+          "name": "report-issue",
+          "tier": "C",
+          "enabled": false,
+          "why": "Files issues against the upstream repo."
+        }
+      ]
+    },
+    {
+      "id": "canvas-apps",
+      "repo": "microsoft/power-platform-skills",
+      "ref": "main",
+      "license": "MIT",
+      "pluginPath": "plugins/canvas-apps",
+      "skillsPath": "skills",
+      "supportPaths": [
+        "references"
+      ],
+      "lastSyncedSha": null,
+      "lastSyncedAt": null,
+      "skills": [
+        {
+          "name": "canvas-app",
+          "tier": "C",
+          "enabled": false,
+          "why": "Requires the CanvasAuthoring MCP server on .NET 10 with an authenticated session."
+        },
+        {
+          "name": "add-data-source",
+          "tier": "C",
+          "enabled": false,
+          "why": "Walks the user through Power Apps Studio in a browser."
+        },
+        {
+          "name": "configure-canvas-mcp",
+          "tier": "C",
+          "enabled": false,
+          "why": "Configures a local MCP server with device code sign-in."
+        },
+        {
+          "name": "generate-canvas-app",
+          "tier": "C",
+          "enabled": false,
+          "why": "Deprecated upstream."
+        },
+        {
+          "name": "report-issue",
+          "tier": "C",
+          "enabled": false,
+          "why": "Files issues against the upstream repo."
+        }
+      ]
+    },
+    {
+      "id": "power-automate",
+      "repo": "microsoft/power-platform-skills",
+      "ref": "main",
+      "license": "MIT",
+      "pluginPath": "plugins/power-automate",
+      "skillsPath": "skills",
+      "supportPaths": [
+        "shared"
+      ],
+      "lastSyncedSha": null,
+      "lastSyncedAt": null,
+      "skills": [
+        {
+          "name": "build-flow",
+          "tier": "C",
+          "enabled": false,
+          "why": "Every skill in this plugin drives the FlowAgent MCP server, which needs az login."
+        },
+        {
+          "name": "create-flow",
+          "tier": "C",
+          "enabled": false,
+          "why": "FlowAgent MCP server."
+        },
+        {
+          "name": "browse-flows",
+          "tier": "C",
+          "enabled": false,
+          "why": "FlowAgent MCP server."
+        },
+        {
+          "name": "manage-flows",
+          "tier": "C",
+          "enabled": false,
+          "why": "FlowAgent MCP server."
+        },
+        {
+          "name": "manage-desktop-flows",
+          "tier": "C",
+          "enabled": false,
+          "why": "FlowAgent MCP server plus a machine group."
+        },
+        {
+          "name": "debug-flow",
+          "tier": "C",
+          "enabled": false,
+          "why": "FlowAgent MCP server."
+        },
+        {
+          "name": "diagnose-flow",
+          "tier": "C",
+          "enabled": false,
+          "why": "FlowAgent MCP server."
+        },
+        {
+          "name": "route-environments",
+          "tier": "C",
+          "enabled": false,
+          "why": "FlowAgent MCP server."
+        },
+        {
+          "name": "setup",
+          "tier": "C",
+          "enabled": false,
+          "why": "Interactive browser sign-in."
+        },
+        {
+          "name": "report-issue",
+          "tier": "C",
+          "enabled": false,
+          "why": "Files issues against the upstream repo."
+        }
+      ]
+    }
+  ]
+}
