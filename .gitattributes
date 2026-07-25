@@ -1,0 +1,6 @@
+# The vendored skill tree is copied verbatim from upstream, which mixes CRLF and LF.
+# Without an explicit attribute, a Windows commit normalizes those files to LF while a Linux
+# sync run rewrites them as CRLF, so the drift check in sync-skills.yml reports changes on
+# every run. `text=auto` makes git normalize on both add and diff, so the comparison is
+# platform-independent; `eol=lf` keeps shell scripts usable when staged on a Linux runner.
+.github/cloud-skills/** text=auto eol=lf

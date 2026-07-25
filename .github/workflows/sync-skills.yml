@@ -10,6 +10,8 @@ on:
       - .github/skills-sources.json
       - .github/scripts/sync-skills.mjs
       - .github/workflows/sync-skills.yml
+      # Line-ending attributes change what the drift check sees.
+      - .gitattributes
 
 permissions:
   contents: read
