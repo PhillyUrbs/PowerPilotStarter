@@ -7,7 +7,7 @@ To change what is vendored, edit `.github/skills-sources.json` and re-run the Sy
 
 | Source | Upstream repository | Ref | Commit | License |
 | --- | --- | --- | --- | --- |
-| `copilot-studio` | microsoft/skills-for-copilot-studio | main | `f7b65888c47e9b3f18c050b15f20cd8dd500b2c5` | MIT |
-| `power-pages` | microsoft/power-platform-skills | main | `8621084f1fbbce7c311805bd182cef712b679c5f` | MIT |
-| `mcp-apps` | microsoft/power-platform-skills | main | `8621084f1fbbce7c311805bd182cef712b679c5f` | MIT |
-| `mobile-apps` | microsoft/power-platform-skills | main | `8621084f1fbbce7c311805bd182cef712b679c5f` | MIT |
+| `copilot-studio` | microsoft/skills-for-copilot-studio | main | `920f419696221b7960b88024982aa6bca4575cf6` | MIT |
+| `power-pages` | microsoft/power-platform-skills | main | `ff74919c1a099a041dda878316ee7e8dfe3e9d5a` | MIT |
+| `mcp-apps` | microsoft/power-platform-skills | main | `ff74919c1a099a041dda878316ee7e8dfe3e9d5a` | MIT |
+| `mobile-apps` | microsoft/power-platform-skills | main | `ff74919c1a099a041dda878316ee7e8dfe3e9d5a` | MIT |
