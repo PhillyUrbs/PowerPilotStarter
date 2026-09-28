@@ -29,8 +29,8 @@
         "scripts/connector-lookup.bundle.js",
         "reference/connectors"
       ],
-      "lastSyncedSha": "f7b65888c47e9b3f18c050b15f20cd8dd500b2c5",
-      "lastSyncedAt": "2026-07-25T02:01:41Z",
+      "lastSyncedSha": "fd9653d0ec743b39443596d7132f907d0d993f1f",
+      "lastSyncedAt": "2026-09-28T12:46:29Z",
       "skills": [
         {
           "name": "new-topic",
@@ -236,8 +236,8 @@
       "excludePaths": [
         "scripts/tests"
       ],
-      "lastSyncedSha": "8621084f1fbbce7c311805bd182cef712b679c5f",
-      "lastSyncedAt": "2026-07-25T02:01:42Z",
+      "lastSyncedSha": "5c7c7cf4d1619f6e1fa0afe23f4853e9c95fdb42",
+      "lastSyncedAt": "2026-09-28T12:46:31Z",
       "skills": [
         {
           "name": "integrate-backend",
@@ -444,8 +444,8 @@
         "references",
         "samples"
       ],
-      "lastSyncedSha": "8621084f1fbbce7c311805bd182cef712b679c5f",
-      "lastSyncedAt": "2026-07-25T02:01:43Z",
+      "lastSyncedSha": "5c7c7cf4d1619f6e1fa0afe23f4853e9c95fdb42",
+      "lastSyncedAt": "2026-09-28T12:46:33Z",
       "skills": [
         {
           "name": "generate-mcp-app-ui",
@@ -472,8 +472,8 @@
         "shared",
         "agents"
       ],
-      "lastSyncedSha": "8621084f1fbbce7c311805bd182cef712b679c5f",
-      "lastSyncedAt": "2026-07-25T02:01:44Z",
+      "lastSyncedSha": "5c7c7cf4d1619f6e1fa0afe23f4853e9c95fdb42",
+      "lastSyncedAt": "2026-09-28T12:46:35Z",
       "skills": [
         {
           "name": "design-system",

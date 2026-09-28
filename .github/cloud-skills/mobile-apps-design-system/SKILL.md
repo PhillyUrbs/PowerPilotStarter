@@ -1,6 +1,6 @@
 ---
 name: mobile-apps-design-system
-description: Creates and manages the brand design system for a Power Apps mobile app. Generates brand/design-system.md (source of truth), brand/tokens.ts (importable Tamagui tokens), and brand/design-system.html (visual gallery). Triggered at Step 6.5 of /create-mobile-app, or standalone via /design-system.
+description: Creates the Tamagui brand system for an Expo/React Native Power Apps mobile app, including design-system.md, tokens.ts, and an HTML gallery.
 ---
 
 # mobile-apps-design-system
