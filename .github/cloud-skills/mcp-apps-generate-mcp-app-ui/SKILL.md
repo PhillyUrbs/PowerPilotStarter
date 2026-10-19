@@ -1,6 +1,6 @@
 ---
 name: mcp-apps-generate-mcp-app-ui
-description: Generate an MCP App widget (self-contained HTML) for an MCP tool. Describe the visual you want and paste your tool's test output. Use when user asks to create an MCP App, widget, or visual for a tool.
+description: Generate a single-file MCP App widget for an MCP tool, with either bundled runtime code or user-approved public CDN imports. Describe the visual and provide a plain structured payload or a full tool result with content, structuredContent, and meta.
 ---
 
 # mcp-apps-generate-mcp-app-ui
