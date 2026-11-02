@@ -1,7 +1,7 @@
 ---
 name: power-pages-add-seo
 description: >-
-  Adds SEO essentials to a Power Pages code site, including robots.txt, sitemap.xml,
+  Adds SEO essentials to a Power Pages SPA site, including robots.txt, sitemap.xml,
   meta tags, Open Graph tags, and favicon configuration. Use when the user wants to
   improve search engine optimization or make their site more searchable.
 ---
