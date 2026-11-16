@@ -78,6 +78,8 @@ h3{font-size:15px;font-weight:700;color:var(--text-bright);margin-top:24px;margi
 .reasoning-block{background:var(--surface2);border-left:2px solid var(--accent);border-radius:var(--radius-sm);padding:10px 14px;margin-top:10px;font-size:12px;line-height:1.7;white-space:pre-wrap;}
 .fix-block{background:var(--pass-bg);border-left:2px solid var(--pass);border-radius:var(--radius-sm);padding:10px 14px;margin-top:8px;font-size:12px;line-height:1.7;}
 .fix-block strong{color:var(--pass);}
+.ai-block{background:rgba(98,100,167,0.08);border-left:2px solid var(--accent);border-radius:var(--radius-sm);padding:10px 14px;margin-top:8px;font-size:12px;line-height:1.7;}
+.mitigation-block{background:var(--surface2);border-left:2px solid var(--warning);border-radius:var(--radius-sm);padding:10px 14px;margin-top:8px;font-size:12px;line-height:1.7;}
 
 .detail-table{width:100%;border-collapse:collapse;font-size:13px;margin:10px 0;}
 .detail-table th{text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;color:var(--text-dim);padding:10px 12px;border-bottom:2px solid var(--border);}
@@ -124,11 +126,11 @@ h3{font-size:15px;font-weight:700;color:var(--text-bright);margin-top:24px;margi
 <footer style="position:fixed;bottom:0;left:0;right:0;text-align:center;padding:10px;font-size:12px;color:#605e5c;border-top:1px solid #c8c6c4;background:#ffffff;z-index:100;">AI-generated content may be incorrect</footer>
 
 <script>
-const REPORT_NAME = "__REPORT_NAME__";
-const SITE_NAME = "__SITE_NAME__";
-const GOAL_LABEL = "__GOAL_LABEL__";
-const SCOPE_LABEL = "__SCOPE_LABEL__";
-const REVIEW_DATA = __REVIEW_DATA__;
+const REPORT_NAME = __JSON_REPORT_NAME__;
+const SITE_NAME = __JSON_SITE_NAME__;
+const GOAL_LABEL = __JSON_GOAL_LABEL__;
+const SCOPE_LABEL = __JSON_SCOPE_LABEL__;
+const REVIEW_DATA = __JSON_REVIEW_DATA__;
 
 // REVIEW_DATA shape:
 //   {
@@ -146,13 +148,17 @@ function esc(s) { if (!s) return ''; return String(s).replace(/&/g,'&amp;').repl
 function escMultiline(s) { return esc(s).replace(/\n/g, '<br>'); }
 function escAttr(s) { return String(s || '').replace(/[^a-zA-Z0-9_.-]/g, ''); }
 const sevLabel = (s) => ({ critical:'CRITICAL', high:'HIGH', warning:'WARNING', medium:'MEDIUM', info:'INFO', low:'LOW', pass:'PASSED' }[s] || (s ? s.toUpperCase() : ''));
+const safeCount = (value) => {
+  const count = Number(value);
+  return Number.isFinite(count) && count > 0 ? Math.trunc(count) : 0;
+};
 
 function findingHtml(f, idx) {
   const id = escAttr(f.id || ('f' + idx));
   const sev = escAttr(f.severity);
   return '<div class="finding-card" id="finding-' + id + '">' +
     '<div class="finding-header">' +
-      (f.severity ? '<span class="severity severity-' + sev + '">' + sevLabel(f.severity) + '</span>' : '') +
+      (f.severity ? '<span class="severity severity-' + sev + '">' + esc(sevLabel(f.severity)) + '</span>' : '') +
       '<span class="finding-title">' + esc(f.title) + '</span>' +
       (f.tag ? '<span class="finding-tag">' + esc(f.tag) + '</span>' : '') +
       '<span class="finding-chevron">&#9654;</span>' +
@@ -161,6 +167,8 @@ function findingHtml(f, idx) {
       (f.location ? '<div style="margin-top:10px;font-size:12px;"><span class="field-label">Location:</span> <code style="background:var(--surface2);padding:1px 5px;border-radius:3px;">' + esc(f.location) + '</code></div>' : '') +
       (f.details ? '<div style="margin-top:10px;font-size:12px;line-height:1.7;">' + escMultiline(f.details) + '</div>' : '') +
       (f.reasoning ? '<div style="margin-top:10px;"><div class="field-label">Why this matters</div><div class="reasoning-block">' + escMultiline(f.reasoning) + '</div></div>' : '') +
+      (f.aiSuggestion ? '<div style="margin-top:8px;"><div class="field-label">AI suggestion</div><div class="ai-block">' + escMultiline(f.aiSuggestion) + '</div></div>' : '') +
+      (f.mitigation ? '<div style="margin-top:8px;"><div class="field-label">Mitigation</div><div class="mitigation-block">' + escMultiline(f.mitigation) + '</div></div>' : '') +
       (f.fix ? '<div style="margin-top:8px;"><div class="field-label">Suggested Fix</div><div class="fix-block">' + escMultiline(f.fix) + '</div></div>' : '') +
     '</div>' +
   '</div>';
@@ -219,8 +227,8 @@ const ISSUE_KEYS = new Set(['critical', 'high', 'warning', 'medium']);
 function overviewHtml() {
   const t = REVIEW_DATA.totals || {};
   const cards = STAT_CARDS
-    .filter(c => (t[c.key] || 0) > 0)
-    .map(c => '<div class="stat-card"><div class="stat-num" style="color:' + c.color + '">' + (t[c.key] || 0) + '</div><div class="stat-label">' + c.label + '</div></div>')
+    .filter(c => safeCount(t[c.key]) > 0)
+    .map(c => '<div class="stat-card"><div class="stat-num" style="color:' + c.color + '">' + safeCount(t[c.key]) + '</div><div class="stat-label">' + c.label + '</div></div>')
     .join('');
   return '<div class="section active" id="tab-overview">' +
     '<h2>' + esc(REPORT_NAME) + '</h2>' +

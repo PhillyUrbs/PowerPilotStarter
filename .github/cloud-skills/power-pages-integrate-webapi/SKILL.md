@@ -3,8 +3,10 @@ name: power-pages-integrate-webapi
 description: >-
   Integrates Power Pages Web API into a site's frontend code with proper permissions and
   deployment. Orchestrates the full integration lifecycle: code integration, table permissions
-  setup, and deployment for Dataverse CRUD operations. Use when the user wants to add Web API
-  calls, connect to Dataverse, or add data fetching to their frontend.
+  setup, and deployment for Dataverse CRUD operations. Also supports PAC-downloaded non-SPA
+  sites by preferring native Forms, Lists, and Liquid before custom Web API JavaScript. Use when
+  the user wants to add Web API calls, connect to Dataverse, add data fetching to their frontend,
+  or integrate a non-SPA page with Dataverse.
 ---
 
 # power-pages-integrate-webapi

@@ -5,7 +5,7 @@
 
 const fs = require('fs');
 const path = require('path');
-const { execSync } = require('child_process');
+const { execFileSync, execSync } = require('child_process');
 
 // Exit 0 = success (allow). Exit 2 = blocking error (stderr is fed back to Claude).
 const approve = () => { process.exit(0); };
@@ -17,18 +17,33 @@ const block = (reason) => {
 /**
  * Wraps stdin JSON parsing and try/catch boilerplate.
  * Calls `callback(cwd)` with the parsed working directory.
- * Approves automatically if cwd is missing or on any uncaught error.
+ * Approves automatically if cwd is missing or on an uncaught error unless
+ * failClosed is enabled for a security-critical validator.
  */
-function runValidation(callback) {
+function runValidation(callback, options = {}) {
   let inputData = '';
   process.stdin.on('data', chunk => (inputData += chunk));
   process.stdin.on('end', async () => {
     try {
       const input = JSON.parse(inputData);
       const cwd = input.cwd;
-      if (!cwd) approve();
+      if (!cwd) {
+        if (options.failClosed) {
+          block(
+            options.failureMessage ||
+            'Validation failed unexpectedly and must be reviewed before continuing.'
+          );
+        }
+        approve();
+      }
       await callback(cwd);
     } catch {
+      if (options.failClosed) {
+        block(
+          options.failureMessage ||
+          'Validation failed unexpectedly and must be reviewed before continuing.'
+        );
+      }
       approve();
     }
   });
@@ -93,20 +108,22 @@ function findPath(dir, target) {
  *
  * A project root is marked by EITHER:
  *   - `powerpages.config.json` — code/SPA sites (`pac pages download-code-site`), OR
- *   - a `.powerpages-site/` directory — declarative design-studio sites
- *     (`pac pages download`; standard or enhanced data model). These have NO
- *     `powerpages.config.json`.
+ *   - a `.powerpages-site/` directory — a project-managed PAC metadata tree, OR
+ *   - `.portalconfig/` plus `website.yml` — a directly opened PAC download.
  *
- * Code sites have both markers; declarative sites have only
- * `.powerpages-site/`. Checking for either makes root discovery work for both site types.
+ * A nested `.powerpages-site/` can itself contain the direct-PAC markers. It is
+ * still metadata owned by its parent project, so an upward search must walk past
+ * that reserved directory instead of losing manifests stored alongside it.
  *
  * @returns {string|null} Project root path, or null
  */
 function findProjectRoot(dir) {
   let current = path.resolve(dir);
   while (true) {
+    const isManagedSiteDirectory = path.basename(current) === '.powerpages-site';
     if (fs.existsSync(path.join(current, 'powerpages.config.json')) ||
-        fs.existsSync(path.join(current, '.powerpages-site'))) {
+        fs.existsSync(path.join(current, '.powerpages-site')) ||
+        (isNonSpaSiteRoot(current) && !isManagedSiteDirectory)) {
       return current;
     }
 
@@ -121,7 +138,39 @@ function findProjectRoot(dir) {
   const fallbackConfigPath = findPath(dir, 'powerpages.config.json');
   if (fallbackConfigPath) return path.dirname(fallbackConfigPath);
   const fallbackSiteDir = findPath(dir, '.powerpages-site');
-  return fallbackSiteDir ? path.dirname(fallbackSiteDir) : null;
+  if (fallbackSiteDir) return path.dirname(fallbackSiteDir);
+  const fallbackPortalConfig = findPath(dir, '.portalconfig');
+  if (fallbackPortalConfig) {
+    const candidate = path.dirname(fallbackPortalConfig);
+    if (isNonSpaSiteRoot(candidate)) {
+      return path.basename(candidate) === '.powerpages-site'
+        ? path.dirname(candidate)
+        : candidate;
+    }
+  }
+  return null;
+}
+
+function isNonSpaSiteRoot(dir) {
+  return fs.existsSync(path.join(dir, '.portalconfig')) &&
+    fs.existsSync(path.join(dir, 'website.yml'));
+}
+
+function resolvePowerPagesSiteRoot(projectRoot) {
+  if (!projectRoot) return null;
+  const resolvedProjectRoot = path.resolve(projectRoot);
+  const nested = path.join(resolvedProjectRoot, '.powerpages-site');
+  const nestedHasSiteMarkers = fs.existsSync(path.join(nested, '.portalconfig')) ||
+    fs.existsSync(path.join(nested, 'website.yml'));
+  if (nestedHasSiteMarkers || (
+    fs.existsSync(path.join(resolvedProjectRoot, 'powerpages.config.json')) &&
+    fs.existsSync(nested)
+  )) {
+    return nested;
+  }
+  if (isNonSpaSiteRoot(resolvedProjectRoot)) return resolvedProjectRoot;
+  if (fs.existsSync(nested)) return nested;
+  return null;
 }
 
 /**
@@ -137,6 +186,168 @@ function findPowerPagesSiteDir(dir, subdir) {
 /** UUID v4 validation regex */
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
+// Dataverse publishes one environment-host family per supported cloud:
+//   Commercial/GCC: <org>[.api].crm{region?}.dynamics.com
+//   GCC High:       <org>[.api].crm.microsoftdynamics.us
+//   DoD:            <org>[.api].crm.appsplatform.us
+//   China:          <org>[.api].crm.dynamics.cn
+// See: https://learn.microsoft.com/power-apps/developer/data-platform/discovery-service#global-discovery-service
+const DATAVERSE_HOST_PATTERNS = [
+  /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.(?:api\.)?crm\d*\.dynamics\.com$/,
+  /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.(?:api\.)?crm\.microsoftdynamics\.us$/,
+  /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.(?:api\.)?crm\.appsplatform\.us$/,
+  /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.(?:api\.)?crm\.dynamics\.cn$/,
+];
+
+// These are the first-party service hosts used by this plugin's cloud maps and
+// the repository's Power Platform cloud map. Keep this exact-host list narrow:
+// an Authorization header must never follow a caller-controlled URL to an
+// arbitrary host just because it happens to use HTTPS.
+const POWER_PLATFORM_SERVICE_HOSTS = new Set([
+  'api.powerplatform.com',
+  'api.gov.powerplatform.microsoft.us',
+  'api.high.powerplatform.microsoft.us',
+  'high.api.powerplatform.microsoft.us',
+  'api.appsplatform.us',
+  'dod.api.powerplatform.microsoft.us',
+  'api.powerplatform.partner.microsoftonline.cn',
+  'api.bap.microsoft.com',
+  'gov.api.bap.microsoft.us',
+  'high.api.bap.microsoft.us',
+  'dod.api.bap.microsoft.us',
+  'api.flow.microsoft.com',
+  'gov.api.flow.microsoft.us',
+  'high.gov.api.flow.microsoft.us',
+  'high.api.flow.microsoft.us',
+  'dod.api.flow.microsoft.us',
+  'api.flow.microsoft.cn',
+  'service.flow.microsoft.com',
+  'gov.service.flow.microsoft.us',
+  'high.gov.service.flow.microsoft.us',
+  'high.service.flow.microsoft.us',
+  'dod.service.flow.microsoft.us',
+  'service.flow.microsoft.cn',
+]);
+
+const BAP_HOSTS = new Set([
+  'api.bap.microsoft.com',
+  'gov.api.bap.microsoft.us',
+  'high.api.bap.microsoft.us',
+  'dod.api.bap.microsoft.us',
+]);
+
+function isDataverseHost(hostname) {
+  return DATAVERSE_HOST_PATTERNS.some((pattern) => pattern.test(hostname));
+}
+
+function parseTrustedMicrosoftUrl(value, {
+  purpose = 'URL',
+  allowPath = true,
+  allowedHost = (hostname) => isDataverseHost(hostname) || POWER_PLATFORM_SERVICE_HOSTS.has(hostname),
+} = {}) {
+  if (typeof value !== 'string' || value.length === 0) {
+    throw new Error(`${purpose} must be a non-empty string.`);
+  }
+
+  // WHATWG URL parsing removes tabs and newlines before validation and treats
+  // backslashes as path separators for special schemes. Reject those before
+  // parsing; ordinary spaces remain allowed in OData query expressions and are
+  // percent-encoded by URL.href below.
+  if (/[\u0000-\u001f\u007f\\]/.test(value)) {
+    throw new Error(`${purpose} contains control characters or backslashes.`);
+  }
+
+  let parsed;
+  try {
+    parsed = new URL(value);
+  } catch {
+    throw new Error(`${purpose} is not a valid URL.`);
+  }
+
+  if (parsed.protocol !== 'https:') {
+    throw new Error(`${purpose} must use HTTPS.`);
+  }
+  if (parsed.username || parsed.password) {
+    throw new Error(`${purpose} must not contain credentials.`);
+  }
+  if (parsed.hash) {
+    throw new Error(`${purpose} must not contain a fragment.`);
+  }
+
+  // URL.port is empty for an explicit default :443, so inspect the original
+  // authority as well. Microsoft service endpoints used here never require a
+  // caller-selected port. URL schemes are case-insensitive, so capture the raw
+  // authority without requiring callers to use lowercase `https://`.
+  const authorityMatch = /^https:\/\/([^/?#]*)/i.exec(value);
+  if (!authorityMatch) {
+    throw new Error(`${purpose} must use HTTPS.`);
+  }
+  const authority = authorityMatch[1];
+  if (authority.includes(':')) {
+    throw new Error(`${purpose} must not contain a port.`);
+  }
+  if (!/^[A-Za-z0-9.-]+$/.test(authority) || parsed.hostname.includes('xn--')) {
+    throw new Error(`${purpose} contains unsafe host characters.`);
+  }
+
+  const hostname = parsed.hostname.toLowerCase();
+  if (!allowedHost(hostname)) {
+    throw new Error(`${purpose} host "${hostname}" is not an allowed Microsoft Dataverse or Power Platform endpoint.`);
+  }
+  if (!allowPath && (parsed.pathname !== '/' || parsed.search)) {
+    throw new Error(`${purpose} must be an HTTPS origin without a path or query.`);
+  }
+
+  return parsed;
+}
+
+function validateDataverseEnvironmentUrl(value, purpose = 'Dataverse environment URL') {
+  return parseTrustedMicrosoftUrl(value, {
+    purpose,
+    allowPath: false,
+    allowedHost: isDataverseHost,
+  }).origin;
+}
+
+function validateTokenResourceUrl(value) {
+  const parsed = parseTrustedMicrosoftUrl(value, {
+    purpose: 'Token resource URL',
+    allowPath: false,
+  });
+  return parsed.origin + (value.endsWith('/') ? '/' : '');
+}
+
+function validateAuthenticatedRequestUrl(value) {
+  return parseTrustedMicrosoftUrl(value, {
+    purpose: 'Authenticated request URL',
+    allowPath: true,
+  }).href;
+}
+
+function validateBapUrl(value, { allowPath = true } = {}) {
+  return parseTrustedMicrosoftUrl(value, {
+    purpose: 'BAP URL',
+    allowPath,
+    allowedHost: (hostname) => BAP_HOSTS.has(hostname),
+  }).href;
+}
+
+function validateBapPollingUrl(location, initiatingUrl, purpose = 'BAP Location header') {
+  const trustedInitiatingUrl = validateBapUrl(initiatingUrl);
+  let resolvedLocation;
+  try {
+    resolvedLocation = new URL(location, trustedInitiatingUrl).href;
+  } catch {
+    throw new Error(`${purpose} is not a valid URL.`);
+  }
+
+  const trustedPollingUrl = validateBapUrl(resolvedLocation);
+  if (new URL(trustedPollingUrl).origin !== new URL(trustedInitiatingUrl).origin) {
+    throw new Error(`${purpose} points to a different host than the initiating BAP request.`);
+  }
+  return trustedPollingUrl;
+}
+
 /**
  * Gets an Azure CLI access token for the given resource URL.
  * The `--allow-no-subscriptions` flag is only valid on `az login` (other `az`
@@ -145,11 +356,32 @@ const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12
  * signing in via `az login --allow-no-subscriptions`.
  * @returns {string|null} Access token, or null if unavailable
  */
-function getAuthToken(resourceUrl) {
+function runAzureCli(args, deps = {}) {
+  const execFile = deps.execFile || execFileSync;
+  const platform = deps.platform || process.platform;
+  if (platform === 'win32') {
+    // Azure CLI is exposed as az.cmd on Windows. Route the fixed argument array
+    // through cmd.exe because Node cannot execute .cmd shims directly.
+    // See: https://nodejs.org/api/child_process.html#spawning-bat-and-cmd-files-on-windows
+    return execFile('cmd.exe', ['/d', '/s', '/c', 'az.cmd', ...args], {
+      encoding: 'utf8',
+      timeout: 15000,
+      shell: false,
+    });
+  }
+  return execFile('az', args, {
+    encoding: 'utf8',
+    timeout: 15000,
+    shell: false,
+  });
+}
+
+function getAuthToken(resourceUrl, deps = {}) {
   try {
-    return execSync(
-      `az account get-access-token --resource "${resourceUrl}" --query accessToken -o tsv`,
-      { encoding: 'utf8', timeout: 15000 }
+    const trustedResourceUrl = validateTokenResourceUrl(resourceUrl);
+    return runAzureCli(
+      ['account', 'get-access-token', '--resource', trustedResourceUrl, '--query', 'accessToken', '-o', 'tsv'],
+      deps
     ).trim();
   } catch {
     return null;
@@ -172,13 +404,38 @@ function getAuthToken(resourceUrl) {
 function parseEnvironmentUrl(whoOutput) {
   if (!whoOutput) return null;
   const match = whoOutput.match(/(?:Org URL|Environment URL):\s*(https:\/\/[^\s]+)/i);
-  return match ? match[1].replace(/\/+$/, '') : null;
+  if (!match) return null;
+  try {
+    return validateDataverseEnvironmentUrl(match[1]);
+  } catch {
+    return null;
+  }
+}
+
+function parseActiveAuthListEnvironmentUrl(authListOutput) {
+  for (const line of String(authListOutput || '').split(/\r?\n/)) {
+    if (!/^\s*\[\d+\]\s+\*/.test(line)) continue;
+    const urls = line.match(/https:\/\/[^\s]+/gi) || [];
+    const environmentUrl = urls[urls.length - 1];
+    if (!environmentUrl) continue;
+    try {
+      return validateDataverseEnvironmentUrl(environmentUrl);
+    } catch {
+      return null;
+    }
+  }
+  return null;
 }
 
 function getEnvironmentUrl() {
   try {
     const output = execSync('pac env who', { encoding: 'utf8', timeout: 15000 });
-    return parseEnvironmentUrl(output);
+    const envUrl = parseEnvironmentUrl(output);
+    if (envUrl) return envUrl;
+  } catch {}
+
+  try {
+    return parseActiveAuthListEnvironmentUrl(execSync('pac auth list', { encoding: 'utf8', timeout: 15000 }));
   } catch {
     return null;
   }
@@ -216,10 +473,14 @@ function getPacAuthInfo() {
  * @returns {Promise<{ statusCode: number, body: string, headers?: object } | { error: string }>}
  */
 function makeRequest({ url, method = 'GET', headers = {}, body = null, includeHeaders = false, timeout = 15000 }) {
+  const authorizationHeader = Object.entries(headers)
+    .find(([name, value]) => name.toLowerCase() === 'authorization' && value);
+  const requestUrl = authorizationHeader ? validateAuthenticatedRequestUrl(url) : url;
+
   return new Promise((resolve) => {
     const https = require('https');
     const http = require('http');
-    const u = new URL(url);
+    const u = new URL(requestUrl);
     const mod = u.protocol === 'https:' ? https : http;
     const req = mod.request(
       {
@@ -333,14 +594,23 @@ module.exports = {
   readDeferralMarker,
   findPath,
   findProjectRoot,
+  isNonSpaSiteRoot,
+  resolvePowerPagesSiteRoot,
   findPowerPagesSiteDir,
   UUID_REGEX,
+  validateDataverseEnvironmentUrl,
+  validateTokenResourceUrl,
+  validateAuthenticatedRequestUrl,
+  validateBapUrl,
+  validateBapPollingUrl,
+  runAzureCli,
   getAuthToken,
   makeRequest,
   odataGet,
   odataGetAll,
   getEnvironmentUrl,
   parseEnvironmentUrl,
+  parseActiveAuthListEnvironmentUrl,
   getPacAuthInfo,
   CLOUD_TO_API,
   CLOUD_TO_SITE_DOMAIN,
