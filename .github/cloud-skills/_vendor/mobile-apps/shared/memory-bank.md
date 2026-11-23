@@ -18,8 +18,10 @@ This file is the per-project notebook the agent maintains across `/create-mobile
 | Working directory | |
 | Plugin version that created the project | |
 | Created | _<ISO date>_ |
-| Metro terminal id | _<background-shell id from Step 12 — `/debug-app` reads this terminal's output for symptom-driven native debugging only. If empty/dead, re-launch with `cd <working_dir> && npm run dev` and update this field._ |
-| Metro launch command | _e.g. `cd <working_dir> && npm run dev`_ |
+| Metro logs | `.powernative/metro-logs/` — sanitized source used by `/debug-app`; do not copy ephemeral values from log filenames into this file |
+| Metro launch command | `npm run dev` |
+| Data layer | Screens-first apps only: `src/hooks/data/` — screens read data and device features only through it; `node scripts/check-data-layer.js` (plugin) lists anything still on sample data |
+| Web preview command | Screens-first apps only: `POWER_APPS_WEB_PREVIEW=1 npm run dev -- --port <free port>` — one dev server for the build plan's sample-data browser preview and the phone; after real data is connected, `npm run web` is the signed-in browser view |
 
 ## Power Platform context
 
@@ -29,6 +31,7 @@ This file is the per-project notebook the agent maintains across `/create-mobile
 | Active environment name | |
 | Environment URL | _e.g. https://orgXXXX.crm.dynamics.com — captured at /add-dataverse Step 1_ |
 | Power Apps CLI identity | |
+| CLI Binary | _pa / power-apps — resolved per `cli-binary.md`_ |
 | App registration (Entra) | _clientId pasted during /create-mobile-app or manual /set-app-registration-native_ |
 | Solution unique name | _e.g. `Default` or `<AppNameSolution>` — captured at /add-dataverse Step 3b. Required for the `--solution` flag on every metadata POST so artifacts land in our solution._ |
 | Publisher prefix | _e.g. `cr3e9` — from the solution's publisher's `customizationprefix`. All schema names use this prefix._ |
@@ -73,13 +76,13 @@ associationsCount:     # number of mobileofflineprofileitemassociation rows
 
 | Capability | Module | Wrapper file | When added | Justification |
 |---|---|---|---|---|
-| _e.g. camera_ | _expo-camera_ | _src/native/camera.ts_ | _ISO date_ | _from plan_ |
+| _e.g. camera_ | _expo-image-picker_ | _src/native/camera.ts_ | _ISO date_ | _from plan_ |
 
 ## Connectors
 
 | Connector kind | Service file | Connection ID | Owner | When added |
 |---|---|---|---|---|
-| dataverse | (multiple, see Data Model) | (built-in) | — | Step 8 of /create-mobile-app |
+| dataverse | (multiple, see Data Model) | (built-in) | — | /create-mobile-app Step 12 (screens first) or Step 8 (data model first) |
 
 ## Screens (live inventory)
 

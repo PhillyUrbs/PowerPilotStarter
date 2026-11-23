@@ -1,0 +1,121 @@
+# JavaScript Dependency Planning
+
+Canonical policy for selecting and adding app-scoped JavaScript libraries. Used by `screen-planner`, `/create-mobile-app`, `/edit-app`, and `/debug-app`.
+
+## Boundary
+
+The prebuilt mobile runtime limits packages that ship native code or native configuration. It does not limit pure-JavaScript packages.
+
+A package is native-bound when it or a runtime dependency ships any of these:
+
+- `ios/`, `android/`, `windows/`, or `macos/` platform projects
+- `*.podspec`
+- `codegenConfig`
+- `expo-module.config.json`
+- `app.plugin.js`, `app.plugin.ts`, or equivalent Expo config plugin
+- `react-native.config.js`
+
+Those packages must already be included at matching versions in the app's
+[verified release context](mobile-release-lifecycle.md). The newest bundled
+template is not the runtime allowlist for an older app. A package name is not
+evidence: a `react-native-*` package may still be pure JavaScript.
+
+Use the orchestrator's sanitized resolved context, or resolve it read-only:
+
+```bash
+node "${PLUGIN_ROOT}/scripts/resolve-mobile-release.js" --project-root '<working_dir>' --local-development
+```
+
+Unknown/missing release records block native mutations, not pure source/UI
+planning and editing. For pure-JavaScript work, inspect the existing project's
+installed versions and contracts; record native compatibility as unverified,
+and do not claim that a successful type-check validates a player or base.
+Never install the controls aggregate, a native leaf, or a newer host to repair
+an older binary; those changes belong to an approved verified-release migration.
+
+## When To Select A Library
+
+Run this workflow when either condition is true:
+
+1. The user explicitly asks to add or use a JavaScript package.
+2. An approved feature has an established library that materially reduces parsing, rules, state, rendering, or accessibility risk compared with hand-written code.
+
+First check the app's existing `dependencies` and platform APIs. Reuse a suitable installed dependency. Do not add a package for a trivial helper or a UI that existing React Native, Expo, Tamagui, or standard JavaScript APIs can implement clearly.
+
+## Candidate Selection
+
+For an explicit package request, evaluate that package first. For a use-case-driven request, shortlist at most three packages and choose one. Do not present a package picker unless two candidates have materially different product behavior that the user must decide.
+
+Use read-only metadata and package-file checks; never install during planning:
+
+```bash
+npm view "<package>" version deprecated license time.modified engines peerDependencies dependencies scripts repository --json
+npm pack "<package>@<exact-version>" --dry-run --ignore-scripts --json
+```
+
+Evaluate candidates in this order:
+
+1. **Compatibility** - supports the project's React, React Native, Expo, and Node versions; does not require an absent peer dependency.
+2. **JavaScript-only** - published files and runtime dependencies have no native markers from the Boundary section.
+3. **Safety** - not deprecated; no `preinstall`, `install`, or `postinstall` lifecycle script for an automatically selected runtime package; identifiable license and repository.
+4. **Maintenance** - maintained stable release, bundled TypeScript declarations or trustworthy types, and no abandoned replacement warning.
+5. **Fit** - smallest focused API that handles the approved use case without duplicating an installed package.
+
+If no candidate passes, use existing primitives when that still meets the requirement. Otherwise return `NEEDS_CONTEXT` or `BLOCKED` with the failed compatibility/native criterion; never install first and hope it works.
+
+## Plan Contract
+
+In `## Screens`, emit `### JavaScript Dependencies` before per-screen specs. Use `None.` when no library is needed. Every selected runtime package uses this table:
+
+| Package | Exact version | Used by | Why selected | JS-only evidence | Native rebuild |
+|---|---|---|---|---|---|
+| `<package>` | `<x.y.z>` | `<screens/use case>` | `<fit over existing APIs and alternatives>` | `<metadata/file-list evidence>` | `No - pure JavaScript` |
+
+The exact version and rationale are part of the screen-plan approval. Approval authorizes the orchestrator to add that package; it does not authorize different packages or version ranges.
+
+### Calendar example
+
+A full month/week/agenda scheduling surface triggers candidate selection. Evaluate `react-native-calendars` first because it supplies established calendar and agenda primitives and is pure JavaScript. Select an exact version compatible with the existing app's React/React Native/Expo and Node versions, not a version assumed from the newest template. Confirm current metadata and compatibility before writing the row. A lightweight horizontal date strip plus `FlatList` does not require a new package.
+
+## Installation Contract
+
+Only `/create-mobile-app` or `/edit-app` installs new or changed approved rows,
+before screen builders run. First save `package.json` to an invocation-specific
+snapshot inside the project's temporary directory; keep its path for validation.
+Do not reinstall or reapprove unchanged existing rows.
+
+```bash
+npm install --save-exact <package>@<exact-version>
+```
+
+Then verify:
+
+- `package.json` records the exact version in `dependencies`
+- the lockfile is updated when the project uses one
+- `require.resolve('<package>', { paths: [process.cwd()] })` succeeds
+- the changed-file dependency validator passes using that pre-install snapshot
+  and one exact approval argument for each added/changed JavaScript dependency:
+
+	```bash
+	node "${PLUGIN_ROOT}/scripts/validate-mobile-files.js" \
+		--project-root '<working_dir>' \
+		--local-development \
+		--before-package-json '<pre-install-snapshot-path>' \
+		--file package.json \
+		--approved-js-dependency "<package>@<exact-version>" \
+		[--approved-js-dependency "<another-package>@<exact-version>" ...]
+	```
+
+	The snapshot identifies additions/changes without consulting the lockfile. Check only those packages' approved versions and relevant installed dependency closures, not all of `node_modules`. Ordinary local checks without a dependency delta do not reapprove existing libraries. Existing unchanged root React/RN peers are not new native code; approvals cannot override native contents or native runtime dependencies.
+- `npx --no-install tsc --noEmit` passes after the consuming code is built
+
+If installed contents reveal native code/config or an incompatible runtime dependency, remove only the newly added package, report the block, and do not let builders import it. Pure-JavaScript additions do not need `/add-native`, `app.config.js`, CocoaPods, Gradle, a native rebuild, or a rewrap-base update.
+Remove only this invocation's pre-install snapshot after validation or verified recovery.
+
+## Builder Contract
+
+Builders may directly import only packages listed in the approved table and present at the exact version in `package.json`. Builders never select packages, edit manifests, or run installs. A missing approved package is an orchestrator block; an unplanned package is a planning-context error.
+
+Forward the same resolved release context (or explicit unresolved/source-only
+status) to planners and builders. Approval of a JS-only dependency is not
+approval to alter native inventory, OS declarations, or the selected base.
